@@ -1,0 +1,14 @@
+{
+    "editor.fontSize": 16,
+    "editor.formatOnSave": true,
+    "files.autoSave": "off",
+    "editor.defaultFormatter": "rvest.vs-code-prettier-eslint",
+    "editor.tabSize": 2,
+    "editor.guides.bracketPairs": "active",
+    "terminal.integrated.fontFamily": "MesloLGM Nerd Font",
+    "terminal.integrated.fontSize": 14,
+    "[typescript]": {
+        "editor.defaultFormatter": "vscode.typescript-language-features"
+    },
+    "typescript.tsdk": "node_modules\\typescript\\lib"
+}

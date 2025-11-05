@@ -1,0 +1,146 @@
+import BaseScript from "../bases/module.base-script"
+import { Colors } from "../modules/module.colors";
+
+
+export async function main(ns: NS) {
+  const script = new Pserv_Tool(ns)
+  await script.run()
+}
+
+export function autocomplete(data: AutocompleteData) {
+  // gọi static autocomplete() từ BaseScript
+  return Pserv_Tool.autocomplete(data, Pserv_Tool.argsSchema)
+}
+
+class Pserv_Tool extends BaseScript {
+  static argsSchema: [string, string | number | boolean | string[]][] = [
+    ['v', 1], ['r', 2], ['n', 'pserv'],
+    ['a', false], ['u', false], ['b', false], ['h', false]
+  ];
+
+  private debug: boolean;
+
+  constructor(ns: NS) {
+    super(ns, Pserv_Tool.argsSchema);
+    this.ns = ns
+    this.debug = this.logs.isDebug || false;
+  }
+
+  async run(ns: NS = this.ns): Promise<void> {
+    var { v: value, r: amountRam, n: base_name, a: all, b: buy, u: upgrade, h: help } = this.flags as {
+      v: number, r: number, n: string, a: boolean, b: boolean, u: boolean, h: boolean
+    }
+    if (upgrade && buy) buy = false
+
+    if (amountRam > 20) { amountRam = 20 }
+    var ram = 2 ** amountRam
+
+    const price_pserv = ns.getPurchasedServerCost(ram)
+    if (!isFinite(price_pserv)) { return this.logs.error(`Price is not ${price_pserv}`) }
+
+    if (help) {
+      this.logs.info(`--- Cách dùng tool và lệnh ---`)
+      this.logs.info(`  -v    [-v <number>] số lượng host`)
+      this.logs.info(`  -r    [-r <number>] số ram muốn <mua/nân cấp> host`)
+      this.logs.info(`  -n    [-n <string>] prefix name host default <pserv>`)
+      this.logs.info(`  -b    xác nhận mua host`)
+      this.logs.info(`  -u    xác nhận nân cấp host`)
+      this.logs.info(`  -a    <mua/nân cấp> tất cả host`)
+      this.logs.info(`  -h    hiển thị cách dùng này`)
+      return
+    }
+
+    var limit: number = 0
+    var pservs_name = ns.getPurchasedServers()
+
+    const list_name_pserv = this.getListNamePserv(base_name, ram)
+    // { this.logs.debug(`list name: \n${JSON.stringify(list_name_pserv, null, 2)}`) }
+
+    if (all) {
+      if (buy) {
+        limit = 25 - pservs_name.length
+      } else {
+        const pserv_ok: string[] = []
+        for (const host of pservs_name) {
+          // this.logs.info(`ram: ${ram} | ${ns.getServerMaxRam(host)}`)
+          if (ram <= ns.getServerMaxRam(host)) continue
+          pserv_ok.push(host)
+        }
+        pservs_name = pserv_ok
+        limit = pserv_ok.length
+      }
+    } else limit = value
+
+    if (buy) {
+      if (limit <= 0) { return this.logs.warn(`Đã mua tối đa 25 host`) }
+      for (var num = 0; num < limit; num++) {
+        const money = ns.getPlayer().money
+        if (money < price_pserv) break
+
+        const name = list_name_pserv[num]
+
+        if (this.buyPserv(name, ram)) {
+          this.logs.success(`[BUY] [${name}] Price:${Colors.Yellow}$${ns.format.number(price_pserv)}`)
+        } else {
+          this.logs.error(`[BUY] [${name}] Price:${Colors.Yellow}$${ns.format.number(price_pserv)}`)
+        }
+      }
+      return
+    }
+
+    if (upgrade) {
+      if (limit <= 0) { return this.logs.warn(`Không có host đủ điều kiện nân cấp`) }
+      var num: number = 0
+      for (const host of pservs_name) {
+        const money = ns.getPlayer().money
+        if (money < price_pserv) break
+
+        const name = list_name_pserv[num]
+        if (host === name) continue
+
+        if (this.upgradePserv(host, name, ram)) {
+          num++
+          this.logs.success(`[UPGRADE] [${host}]->[${name}] Price:${Colors.Yellow}$${ns.format.number(price_pserv)}`)
+        } else {
+          this.logs.error(`[UPGRADE] [${host}]->[${name}] Price:${Colors.Yellow}$${ns.format.number(price_pserv)}`)
+        }
+        if (limit <= num) break
+      }
+      return
+    }
+    return
+  }
+
+  private buyPserv(name_pserv: string, ram: number, ns: NS = this.ns): string | null {
+    if (this.debug) { return name_pserv }
+    const buy_name = ns.purchaseServer(name_pserv, ram)
+    if (buy_name.length <= 0) return null
+    return buy_name
+  }
+
+  private upgradePserv(old_name: string, new_name: string, ram: number, ns: NS = this.ns): boolean {
+    if (this.debug) { return true }
+    const upgrade_ok = ns.upgradePurchasedServer(old_name, ram)
+    if (!upgrade_ok) return false
+    const rename_ok = ns.renamePurchasedServer(old_name, new_name)
+    if (!rename_ok) return false
+    return true
+  }
+
+  private getListNamePserv(base_name: string, ram: number, limit: number = 25, ns: NS = this.ns): string[] {
+    const list_name_pserv: string[] = []
+    const pserv_names = ns.getPurchasedServers()
+
+    for (var num = 0; num < limit; num++) {
+      const name = `${base_name}-${ns.format.ram(ram)}-${num + 1}`
+      if (pserv_names.includes(name)) continue
+      list_name_pserv.push(name)
+    }
+
+    return list_name_pserv
+  }
+
+  static autocompleteExtra(data: AutocompleteData): string[] {
+    return data.servers;
+  }
+}

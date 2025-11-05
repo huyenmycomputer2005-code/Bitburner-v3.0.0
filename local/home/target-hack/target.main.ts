@@ -1,0 +1,127 @@
+import BaseScript from '../bases/module.base-script.ts'
+import { isOnCooldown, setCooldown } from '../modules/module.cooldown.ts'
+import Target_Module from '../modules/module.target-hack.ts'
+
+export async function main(ns: NS) {
+  const script = new Target_Script(ns)
+  await script.run(ns)
+}
+
+export function autocomplete(data: AutocompleteData) {
+  // gọi static autocomplete() từ BaseScript
+  return Target_Script.autocomplete(data, Target_Script.argsSchema)
+}
+
+class Target_Script extends BaseScript {
+  /**@param argsSchema flags riêng của script con */
+  static argsSchema: [string, string | number | boolean | string[]][] = [
+    ['target', 'all'], ['host', 'all'],
+    ['rate', 0.1], ['h', false],
+  ]
+
+  constructor(ns: NS) {
+    super(ns, Target_Script.argsSchema)
+    this.debug = this.logs.isDebug
+    this.utils = new Target_Module(ns, this.logs)
+  }
+
+  /**@param debug biến gỡ lỗi */
+  private debug: boolean
+  /**@param utils Module tiện ích hack */
+  private utils: Target_Module
+
+  async run(ns: NS) {
+    var { target, rate, h: sp, host } = this.flags as {
+      target: string, rate: number, h: boolean, host: string
+    }
+
+    if (!target || target == '') {
+      return this.logs.error(`[target] is [${target}]\n use: run ... --target <server name | all>`)
+    }
+    if (rate > 0.95) rate = 0.95
+
+    const launch_delay = this.utils.isLaunchDelay
+    var targets: string[] = [], hosts: string[] = []
+
+    /** Hàm main phụ */
+    const submain = async (server: Server) => {
+      if (isOnCooldown(server.hostname)) return
+      /** Batches setup */
+      const batches = await this.utils.getBatch(server, rate)
+      if (this.debug) {
+        this.logs.debug(`[${server.hostname}] Server: ${JSON.stringify(server, null, 2)}`)
+        this.logs.debug(`[${server.hostname}] Batches: ${JSON.stringify(batches, null, 2)}`)
+      }
+
+      /** log info */
+      const logMsg: { msg: any }[] = [
+        { msg: `[BATT-Target] [${batches.hostname}]` },
+        { msg: `[BATT-Threads] H=${batches.hackThreads} WH=${batches.weakenHackThreads} G=${batches.growThreads} WG=${batches.weakenGrowThreads}` },
+      ]
+
+      var checkRun = false
+      if (batches) { // Chiển khai tấn công
+        batches.normalization ? this.logs.warn(logMsg[0].msg) : this.logs.info(logMsg[0].msg)
+        batches.normalization ? this.logs.warn(logMsg[1].msg) : this.logs.info(logMsg[1].msg)
+        const runOk = await this.utils.sendBatch(batches, hosts)
+        if (runOk) {
+          checkRun = true
+        }
+      }
+
+      checkRun // Xác nhận chạy
+        ? this.logs.success(`[EXEC] [${batches.hostname}]`)
+        : this.logs.error(`[EXEC] [${batches.hostname}]`)
+
+      // Đặt thời gian chờ cho target
+      if (checkRun) {
+        const now = Date.now()
+        const value = batches.normalization
+          ? now + (batches.endtime + launch_delay * 4)
+          : now + Math.max(2000, (batches.endtime + launch_delay) / 20)
+        setCooldown(server.hostname, value)
+      }
+    }
+
+    var old_time = {
+      time_host: 0,   // Delay get host
+      time_target: 0, // Delay get target
+      time_copy: 0    // Delay copy
+    }
+
+    while (true) {
+      const now = (Date.now() / 1000)
+      /** Lấy danh sách hosts */
+      if (now - old_time.time_host > 20) {
+        hosts = await this.utils.getHost(host, sp)
+        this.logs.debug(JSON.stringify(hosts, null, 2))
+        old_time.time_host = now
+      }
+      /** Triển khai các script con */
+      if (now - old_time.time_copy > 20) {
+        this.utils.copyScripts(hosts)
+        old_time.time_copy = now
+      }
+      /** Lấy danh sách targets */
+      if (now - old_time.time_target > 60) {
+        targets = await this.utils.getTargets(target)
+        old_time.time_target = now
+      }
+
+      for (const st of targets) {
+        if (st == 'foodnstuff') continue
+        const server = this.utils.checkOut(st)
+        if (!server) continue
+        await submain(server)
+        if (this.debug) break
+        if (target.toLowerCase() === 'all') await ns.sleep(100)
+      }
+      await ns.sleep(400)
+    }
+  }
+
+  // --- autocomplete thêm giá trị gợi ý riêng cho target
+  static autocompleteExtra(data: AutocompleteData) {
+    return data.servers
+  }
+}
