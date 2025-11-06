@@ -5,6 +5,8 @@ export default abstract class BaseScript {
   ns: NS
   logs: Logger
   flags: Record<string, any>
+  /**@param debug biến gỡ lỗi */
+  debug: boolean
   static baseArgs: [string, string | number | boolean | string[]][] = [
     ['loglevel', 'info'],
     ['l', false], ['d', false], ['s', false],
@@ -12,6 +14,7 @@ export default abstract class BaseScript {
 
   constructor(ns: NS, extraArgs: [string, string | number | boolean | string[]][] = []) {
     ns.disableLog('ALL')
+    ns.clearLog()
     this.ns = ns
 
     // --- merge base args + extra args của script con
@@ -38,6 +41,7 @@ export default abstract class BaseScript {
       debug: debug
     })
     !debug ? this.logs.setLevel(logMap[loglevel] ?? LogLevel.INFO) : this.logs.setLevel(logMap['debug'] ?? LogLevel.DEBUG)
+    this.debug = debug
 
     if (logEnabled) {
       ns.clearLog()
