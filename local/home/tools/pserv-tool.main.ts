@@ -71,6 +71,9 @@ class Pserv_Tool extends BaseScript {
       }
     } else limit = value
 
+    this.logs.info(`Price (one/all(${limit})): ${Colors.Yellow}$${ns.format.number(price_pserv)} / ${Colors.Yellow}$${ns.format.number(price_pserv * limit)}`)
+    this.logs.info(`Ram : ${ns.format.ram(ram)}`)
+
     if (buy) {
       if (limit <= 0) { return this.logs.warn(`Đã mua tối đa 25 host`) }
       for (var num = 0; num < limit; num++) {

@@ -109,14 +109,14 @@ class Target_Script extends BaseScript {
       }
 
       for (const st of targets) {
-        if (st == 'foodnstuff') continue
+        // if (st == 'foodnstuff') continue
         const server = this.utils.checkOut(st)
         if (!server) continue
         await submain(server)
         if (this.debug) break
-        if (target.toLowerCase() === 'all') await ns.sleep(100)
+        // if (target.toLowerCase() === 'all') await ns.sleep(100)
       }
-      await ns.sleep(400)
+      await ns.sleep(200)
     }
   }
 
