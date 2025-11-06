@@ -27,5 +27,9 @@ declare global {
   type GangOtherInfoObject = _NS.GangOtherInfoObject
   type GangTaskStats = _NS.GangTaskStats
   type GangTerritory = _NS.GangTerritory
+  type Infiltration = _NS.Infiltration
+  type InfiltrationReward = _NS.InfiltrationReward
+  type InfiltrationLocation = _NS.InfiltrationLocation
+  type IndustryData = _NS.IndustryData
 
 }
