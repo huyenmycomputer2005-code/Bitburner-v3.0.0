@@ -37,6 +37,7 @@ export default class Target_Module {
     grow: number
     weaken: number
   }
+  private batch_cache: Record<string, Batch>
 
   constructor(ns: NS, logs: Logger, configs?: Partial<Configs>) {
     this.ns = ns
@@ -72,7 +73,7 @@ export default class Target_Module {
     const timemax = Math.max(...Object.values(times) as number[])
 
     /** Server normalization */
-    if ((hackDifficulty > minDifficulty + 5) || (moneyAvailable < moneyMax * 0.9)) {
+    if ((hackDifficulty > minDifficulty + 5) && (moneyAvailable < moneyMax * 0.9)) {
       // --- Kiểm tra tiền --- //
       grow_Threads += Math.max(1, Math.ceil(this.ns.growthAnalyze(target, (moneyMax / Math.max(1, moneyAvailable)))))
       if (grow_Threads > 0) hackDifficulty += grow_Threads * Math.max(0.004, this.ns.hackAnalyzeSecurity(1, target))
@@ -98,12 +99,13 @@ export default class Target_Module {
     else {
       // --- Hack threads --- //
       hack_Threads += Math.max(1, Math.ceil(this.ns.hackAnalyzeThreads(target, (moneyAvailable * rate),)))
-      if (!isFinite(hack_Threads)) hack_Threads = 0
+      if (!isFinite(hack_Threads)) hack_Threads = 1
 
       // --- Grow threads --- //
       const safeMoney = Math.max(1, moneyAvailable - (moneyAvailable * rate))
       const growRatio = moneyMax / safeMoney
       grow_Threads += Math.max(1, Math.ceil(this.ns.growthAnalyze(target, growRatio)))
+      if (!isFinite(grow_Threads)) grow_Threads = 1
 
       // --- Weaken threads --- //
       if (hack_Threads > 0) {
@@ -300,6 +302,7 @@ export default class Target_Module {
       this.ns.tprint(`⚠️ ${target} Không có tiền để hack`)
       return null
     }
+    if (this.ns.getWeakenTime(server.hostname) > 240_000) { return null }
     return server
   }
 
@@ -367,6 +370,8 @@ export default class Target_Module {
   get isStagger() { return this.configs.stagger }
   get isRams() { return this.scrips_ram }
   get isPath() { return this.scrips_path }
+
+
 }
 
 
