@@ -1,12 +1,13 @@
 export async function main(ns: NS) {
   ns.disableLog("ALL");
+  ns.clearLog();
   if (!ns.gang.inGang()) {
     joinGang(ns);
   }
 
   var territoryWinChance = 1;
   // tasks = ns.gang.getTaskNames()
-  // ns.print(JSON.stringify(tasks))
+  // ns.print(JSON.stringify(memberInfo))
 
   while (true) {
     recruit(ns);
@@ -48,7 +49,7 @@ function territoryWar(ns: NS) {
         ns.toast("Bắt đầu chiến tranh lãnh thổ");
         ns.gang.setTerritoryWarfare(true);
       }
-      ns.print("Cơ hội giành được lãnh thổ:" + lowestWinChance);
+      ns.print("Cơ hội chiếm lãnh thổ: " + (lowestWinChance * 100).toFixed(2) + "%");
     }
     return lowestWinChance;
   }
@@ -88,7 +89,16 @@ function equipMembers(ns: NS) {
     if (memberInfo.augmentations.length < augmentationNames.length) {
       for (let augmentation of augmentationNames) {
         if (ns.gang.getEquipmentCost(augmentation) < (0.01 * ns.getServerMoneyAvailable("home"))) {
-          ns.print("Tăng cường mua hàng cho " + member + ": " + augmentation);
+          ns.print("Tăng cường cho " + member + ": " + augmentation);
+          ns.gang.purchaseEquipment(member, augmentation);
+        }
+      }
+    }
+
+    if (memberInfo.upgrades.length < upgradeName.length) {
+      for (let augmentation of upgradeName) {
+        if (ns.gang.getEquipmentCost(augmentation) < (0.01 * ns.getServerMoneyAvailable("home"))) {
+          ns.print("Tăng cường cho " + member + ": " + augmentation);
           ns.gang.purchaseEquipment(member, augmentation);
         }
       }
@@ -135,7 +145,7 @@ function assignMembers(ns: NS, territoryWinChance: number) {
 
 
     if (memberInfo.task != highestValueTask) {
-      ns.print("Giao phó " + member + " đến " + highestValueTask);
+      ns.print("Giao phó: " + member + " -> " + highestValueTask);
       ns.gang.setMemberTask(member, highestValueTask);
     }
   }
@@ -158,9 +168,9 @@ function taskValue(ns: NS, gangInfo: GangGenInfo, member: string, task: string) 
   }
 
   if (ns.getServerMoneyAvailable("home") > 10e12) {
-    // if we got all augmentations, money from gangs is probably not relevant anymore; so focus on respect
-    // set money gain at least to respect gain in case of low money gain tasks like terrorism
-    moneyGain /= 100; // compare money to respect gain value; give respect more priority
+    // nếu chúng ta nhận được tất cả các khoản tăng thêm, tiền từ các băng đảng có lẽ không còn phù hợp nữa; vì vậy hãy tập trung vào sự tôn trọng
+    // đặt mức tăng tiền ít nhất là tôn trọng mức tăng trong trường hợp các nhiệm vụ kiếm tiền thấp như khủng bố
+    moneyGain /= 100; // so sánh tiền bạc để tôn trọng giá trị đạt được; ưu tiên sự tôn trọng hơn
     moneyGain = Math.max(moneyGain, respectGain);
   }
 
@@ -177,8 +187,8 @@ function memberCombatStats(ns: NS, member: string) {
 function recruit(ns: NS) {
   if (ns.gang.canRecruitMember()) {
     let members = ns.gang.getMemberNames();
-    let memberName = "bitburner-" + members.length;
-    ns.print("Tuyển thành viên băng đảng mới " + memberName);
+    let memberName = "bittool-" + members.length;
+    ns.print("Tuyển thành viên " + memberName);
     ns.gang.recruitMember(memberName);
   }
 }
@@ -199,9 +209,15 @@ var tasks: string[] = [
   "Train Charisma"
 ];
 
+var upgradeName = [
+  "Baseball Bat", "Katana", "Malorian-3516", "Hansen-HA7", "Arasaka-HJSH18", "Militech-M251s", "Nokota-D5", "Techtronika-SPT32",
+  "Bulletproof Vest", "Full Body Armor", "Liquid Body Armor", "Graphene Plating Armor", "Herrera Outlaw GTS", "Yaiba ASM-R250 Muramasa",
+  "Rayfield Caliburn", "Quadra Sport R-7", "NUKE Rootkit", "Soulstealer Rootkit", "Demon Rootkit", "Hmap Node", "Jack the Ripper"
+]
+
 const augmentationNames = [
-  "Bionic Arms", "Bionic Legs", "Bionic Spine", "BrachiBlades", "Nanofiber Weave", "Synthetic Heart",
-  "Synfibril Muscle", "Graphene Bone Lacings", "BitWire", "Neuralstimulator", "DataJack"
+  "BitWire", "DataJack", "Bionic Arms", "Bionic Legs", "Neuralstimulator", "Nanofiber Weave", "Bionic Spine",
+  "Synfibril Muscle", "BrachiBlades", "Synthetic Heart", "Graphene Bone Lacings"
 ];
 
 var combatGangs = [
