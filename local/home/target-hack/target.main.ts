@@ -72,7 +72,14 @@ class Target_Script extends BaseScript {
 
         if (isOnCooldown(server.hostname)) continue
         /** Batches setup */
-        const batches = await this.utils.getBatch(server, rate)
+        // var batches = this.utils.getBatchSave(server.hostname)
+        // if (!batches || (batches && (Date.now() - batches.createAt) > 5_000)) {
+        //   batches = await this.utils.getBatch(server, rate)
+        //   if (batches && !batches.normalization) {
+        //     this.utils.setBatchSave(batches.hostname, batches)
+        //   }
+        // }
+        var batches = await this.utils.getBatch(server, rate)
         if (!batches) continue
 
         if (this.debug) {

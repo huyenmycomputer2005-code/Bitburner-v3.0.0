@@ -13,7 +13,8 @@ export interface Batch {
   endtime: number;
   timeHack: number;
   timeGrow: number;
-  timeWeaken: number
+  timeWeaken: number;
+  createAt: number;
 }
 
 export interface Configs {
@@ -37,7 +38,7 @@ export default class Target_Module {
     grow: number
     weaken: number
   }
-  private batch_cache: Record<string, Batch>
+  private batch_cache: Map<string, Batch> = new Map()
 
   constructor(ns: NS, logs: Logger, configs?: Partial<Configs>) {
     this.ns = ns
@@ -49,7 +50,7 @@ export default class Target_Module {
     }
     this.configs = {
       stagger: 400,
-      launch_delay: 200,
+      launch_delay: 400,
       maxram: Math.max(...Object.values(this.scrips_ram) as number[]),
       debug: logs.isDebug || false,
       ...configs
@@ -58,7 +59,7 @@ export default class Target_Module {
 
 
   /** Kiểm tra chuẩn hóa và thiết lập các luồn cho đợt tấn công */
-  private async setupBatThreads(server: Server, rate: number): Promise<Batch> {
+  private async setupBatThreads(server: Server, rate: number, ns = this.ns): Promise<Batch> {
     // --- Thông tin server --- //
     const target = server.hostname
     var moneyAvailable = server.moneyAvailable!
@@ -68,15 +69,15 @@ export default class Target_Module {
 
     // --- Khởi tạo biến cục bộ --- //
     var [hack_Threads, grow_Threads, weakenH_Threads, weakenG_Threads] = [0, 0, 0, 0]
-    const valueWeaken = this.ns.weakenAnalyze(1)
+    const valueWeaken = ns.weakenAnalyze(1)
     const times = this.timesWGH(target)
     const timemax = Math.max(...Object.values(times) as number[])
 
     /** Server normalization */
     if ((hackDifficulty > minDifficulty + 5) && (moneyAvailable < moneyMax * 0.9)) {
       // --- Kiểm tra tiền --- //
-      grow_Threads += Math.max(1, Math.ceil(this.ns.growthAnalyze(target, (moneyMax / Math.max(1, moneyAvailable)))))
-      if (grow_Threads > 0) hackDifficulty += grow_Threads * Math.max(0.004, this.ns.hackAnalyzeSecurity(1, target))
+      grow_Threads += Math.max(1, Math.ceil(ns.growthAnalyze(target, (moneyMax / Math.max(1, moneyAvailable)))))
+      if (grow_Threads > 0) hackDifficulty += grow_Threads * Math.max(0.004, ns.hackAnalyzeSecurity(1, target))
 
       // --- Kiểm tra bảo mật --- //
       weakenG_Threads += Math.max(1, Math.ceil((hackDifficulty - minDifficulty) / valueWeaken))
@@ -92,31 +93,32 @@ export default class Target_Module {
         endtime: timemax,
         timeHack: times.th,
         timeGrow: times.tg,
-        timeWeaken: times.tw
+        timeWeaken: times.tw,
+        createAt: Date.now()
       }
     }
     /** Thiết lập HWGW */
     else {
       // --- Hack threads --- //
-      hack_Threads += Math.max(1, Math.ceil(this.ns.hackAnalyzeThreads(target, (moneyAvailable * rate),)))
+      hack_Threads += Math.max(1, Math.ceil(ns.hackAnalyzeThreads(target, (moneyAvailable * rate),)))
       if (!isFinite(hack_Threads)) hack_Threads = 1
 
       // --- Grow threads --- //
       const safeMoney = Math.max(1, moneyAvailable - (moneyAvailable * rate))
       const growRatio = moneyMax / safeMoney
-      grow_Threads += Math.max(1, Math.ceil(this.ns.growthAnalyze(target, growRatio)))
+      grow_Threads += Math.max(1, Math.ceil(ns.growthAnalyze(target, growRatio)))
       if (!isFinite(grow_Threads)) grow_Threads = 1
 
       // --- Weaken threads --- //
       if (hack_Threads > 0) {
         // -- Weaken Hack -- //
-        const security_Hack = Math.ceil(hack_Threads * Math.max(0.002, this.ns.hackAnalyzeSecurity(1, target)))
+        const security_Hack = Math.ceil(hack_Threads * Math.max(0.002, ns.hackAnalyzeSecurity(1, target)))
         weakenH_Threads += Math.max(1, Math.ceil(security_Hack / valueWeaken))
       }
 
       if (grow_Threads > 0) {
         // -- Weaken Grow -- //
-        const security_Grow = Math.ceil(grow_Threads * Math.max(0.004, this.ns.hackAnalyzeSecurity(1, target)))
+        const security_Grow = Math.ceil(grow_Threads * Math.max(0.004, ns.hackAnalyzeSecurity(1, target)))
         weakenG_Threads += Math.max(1, Math.ceil(security_Grow / valueWeaken))
       }
 
@@ -131,7 +133,8 @@ export default class Target_Module {
         endtime: timemax,
         timeHack: times.th,
         timeGrow: times.tg,
-        timeWeaken: times.tw
+        timeWeaken: times.tw,
+        createAt: Date.now()
       }
     }
   }
@@ -155,7 +158,7 @@ export default class Target_Module {
 
 
   /** Hàm Triển khai trính */
-  private async execAllocList(hosts: string[], batches: Batch): Promise<boolean> {
+  private async execAllocList(hosts: string[], batches: Batch, ns = this.ns): Promise<boolean> {
     // Khởi tạo biến cục bộ và kiểm tra lại các host //
     if (!batches) return false
     var batch_Threads = batches.totalThreads
@@ -192,16 +195,16 @@ export default class Target_Module {
     const startGrow = Math.max(0, finishGrow - tg)
     const startWeakG = Math.max(0, finishWeakG - tw)
     if (this.configs.debug) {
-      this.logs.debug(`[${target}] - startHack: ${this.ns.format.time(Math.max(0, startHack - Date.now()))}`)
-      this.logs.debug(`[${target}] - startWeakH: ${this.ns.format.time(Math.max(0, startWeakH - Date.now()))}`)
-      this.logs.debug(`[${target}] - startGrow: ${this.ns.format.time(Math.max(0, startGrow - Date.now()))}`)
-      this.logs.debug(`[${target}] - startWeakG: ${this.ns.format.time(Math.max(0, startWeakG - Date.now()))}`)
+      this.logs.debug(`[${target}] - startHack: ${ns.format.time(Math.max(0, startHack - Date.now()))}`)
+      this.logs.debug(`[${target}] - startWeakH: ${ns.format.time(Math.max(0, startWeakH - Date.now()))}`)
+      this.logs.debug(`[${target}] - startGrow: ${ns.format.time(Math.max(0, startGrow - Date.now()))}`)
+      this.logs.debug(`[${target}] - startWeakG: ${ns.format.time(Math.max(0, startWeakG - Date.now()))}`)
       return false
     }
     var i = 0
     // Loop chạy các sripts cho đến khi hoàn thành //
     while (batch_Threads > 0) {
-      await this.ns.sleep(10)
+      await ns.sleep(10)
       for (const host of hosts) {
         if (this.getFreeRamServer(host) <= 0) continue
 
@@ -209,7 +212,7 @@ export default class Target_Module {
           const threadsHost = await this.getfreeThreadsServer(this.scrips_ram.hack, [host])
           if (threadsHost <= 0) continue
           const use_Threads = Math.min(threadsHost, tHack)
-          const runOK = this.ns.exec(this.scrips_path.hack, host, use_Threads, ...[target, startHack, this.configs.debug])
+          const runOK = ns.exec(this.scrips_path.hack, host, use_Threads, ...[target, startHack, this.configs.debug])
           if (runOK <= 0) continue
           tHack -= use_Threads
           batch_Threads -= use_Threads
@@ -219,7 +222,7 @@ export default class Target_Module {
           const threadsHost = await this.getfreeThreadsServer(this.scrips_ram.weaken, [host])
           if (threadsHost <= 0) continue
           const use_Threads = Math.min(threadsHost, tWeakH)
-          const runOK = this.ns.exec(this.scrips_path.weaken, host, use_Threads, ...[target, startWeakH, this.configs.debug])
+          const runOK = ns.exec(this.scrips_path.weaken, host, use_Threads, ...[target, startWeakH, this.configs.debug])
           if (runOK <= 0) continue
           tWeakH -= use_Threads
           batch_Threads -= use_Threads
@@ -229,7 +232,7 @@ export default class Target_Module {
           const threadsHost = await this.getfreeThreadsServer(this.scrips_ram.grow, [host])
           if (threadsHost <= 0) continue
           const use_Threads = Math.min(threadsHost, tGrow)
-          const runOK = this.ns.exec(this.scrips_path.grow, host, use_Threads, ...[target, startGrow, this.configs.debug])
+          const runOK = ns.exec(this.scrips_path.grow, host, use_Threads, ...[target, startGrow, this.configs.debug])
           if (runOK <= 0) continue
           tGrow -= use_Threads
           batch_Threads -= use_Threads
@@ -239,7 +242,7 @@ export default class Target_Module {
           const threadsHost = await this.getfreeThreadsServer(this.scrips_ram.weaken, [host])
           if (threadsHost <= 0) continue
           const use_Threads = Math.min(threadsHost, tWeakG)
-          const runOK = this.ns.exec(this.scrips_path.weaken, host, use_Threads, ...[target, startWeakG, this.configs.debug])
+          const runOK = ns.exec(this.scrips_path.weaken, host, use_Threads, ...[target, startWeakG, this.configs.debug])
           if (runOK <= 0) continue
           tWeakG -= use_Threads
           batch_Threads -= use_Threads
@@ -259,8 +262,8 @@ export default class Target_Module {
 
 
   /** Lấy free Ram host */
-  private getFreeRamServer(host: string): number {
-    return Math.max(0, (this.ns.getServerMaxRam(host) - this.ns.getServerUsedRam(host)))
+  private getFreeRamServer(host: string, ns = this.ns): number {
+    return Math.max(0, (ns.getServerMaxRam(host) - ns.getServerUsedRam(host)))
   }
 
 
@@ -278,44 +281,44 @@ export default class Target_Module {
 
 
   /** Lấy thời gian thực thi của hàm hack, grow, weaken */
-  private timesWGH(target: string) {
+  private timesWGH(target: string, ns = this.ns) {
     return {
-      th: Math.ceil(this.ns.getHackTime(target)),
-      tg: Math.ceil(this.ns.getGrowTime(target)),
-      tw: Math.ceil(this.ns.getWeakenTime(target))
+      th: Math.ceil(ns.getHackTime(target)),
+      tg: Math.ceil(ns.getGrowTime(target)),
+      tw: Math.ceil(ns.getWeakenTime(target))
     }
   }
 
 
   /** Kiểm tra target có đủ điều kiện không */
-  private check_target(target: string) {
-    const server = this.ns.getServer(target)
+  private check_target(target: string, ns = this.ns) {
+    const server = ns.getServer(target)
     if (!server) {
-      this.ns.tprint(`❌ Không tìm thấy server: ${target}`)
+      ns.tprint(`❌ Không tìm thấy server: ${target}`)
       return null
     }
     if (!server.hasAdminRights) {
-      this.ns.tprint(`⚠️ Chưa có quyền admin trên ${target}`)
+      ns.tprint(`⚠️ Chưa có quyền admin trên ${target}`)
       return null
     }
     if (server.moneyMax! <= 0) {
-      this.ns.tprint(`⚠️ ${target} Không có tiền để hack`)
+      ns.tprint(`⚠️ ${target} Không có tiền để hack`)
       return null
     }
-    if (this.ns.getWeakenTime(server.hostname) > 240_000) { return null }
+    if (server.minDifficulty! >= server.hackDifficulty! && ns.getWeakenTime(server.hostname) > 240_000) { return null }
     return server
   }
 
 
   /** Lấy danh sách các host có thể dùng */
-  private async get_hosts(prefix: string, sp: boolean = false) {
+  private async get_hosts(prefix: string, sp: boolean = false, ns = this.ns) {
     var hosts: string[] = []
     this.logs.info(`[GET-HOSTS]`)
 
     if (prefix.toLowerCase() === 'all') {
-      hosts = await get_hosts_ok(this.ns)
+      hosts = await get_hosts_ok(ns)
     } else if (prefix.toLowerCase() === 'pserv') {
-      hosts = this.ns.getPurchasedServers()
+      hosts = ns.getPurchasedServers()
     } else {
       hosts = [prefix]
     }
@@ -328,30 +331,42 @@ export default class Target_Module {
   }
 
   /** Chiển khai script con */
-  private copy_script(hosts: string[]) {
+  private copy_script(hosts: string[], ns = this.ns) {
     if (this.configs.debug) this.logs.info(`[COPY-SCRIPT]`)
 
     for (const host of hosts) {
       if (host === 'home') continue
-      this.ns.scp(Object.values(this.scrips_path) as string[], host)
+      ns.scp(Object.values(this.scrips_path) as string[], host)
     }
 
     if (this.configs.debug) this.logs.success(`[COPY-SCRIPT] ${hosts.length} host`)
   }
 
   /** Lấy danh sách các target có thể hack */
-  private async get_targets(prefix: string) {
+  private async get_targets(prefix: string, ns = this.ns) {
     var servers: string[] = []
     this.logs.info(`[GET-TARGETS]`)
 
     if ((prefix).toLowerCase() === 'all') {
-      servers = await get_server_hack_ok(this.ns)
+      servers = await get_server_hack_ok(ns)
     } else {
       servers = [prefix]
     }
 
     this.logs.success(`[GET-TARGETS] ${servers.length} server`)
     return servers
+  }
+
+  /** Lưu Batch theo target */
+  private set_batch_save(target: string, batch: Batch, ns = this.ns) {
+    this.logs.warn(`[SET-Batch]`)
+    this.batch_cache.set(target, batch)
+  }
+
+  /** Lấy Batch theo target */
+  private get_batch_save(target: string) {
+    this.logs.warn(`[GET-Batch]`)
+    return this.batch_cache.get(target)
   }
 
   async sendBatch(batch: Batch, hosts: string[]) { return this.attackBatch(batch, hosts) }
@@ -366,11 +381,14 @@ export default class Target_Module {
   /** Chiển khai script con */
   copyScripts(hosts: string[]) { return this.copy_script(hosts) }
 
+  setBatchSave(target: string, batch: Batch) { return this.set_batch_save(target, batch) }
+
+  getBatchSave(target: string) { return this.get_batch_save(target) }
+
   get isLaunchDelay() { return this.configs.launch_delay }
   get isStagger() { return this.configs.stagger }
   get isRams() { return this.scrips_ram }
   get isPath() { return this.scrips_path }
-
 
 }
 
