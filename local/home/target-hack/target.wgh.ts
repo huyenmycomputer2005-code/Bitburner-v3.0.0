@@ -90,19 +90,19 @@ export async function main(ns: NS) {
 
       }
 
-      else {
-        const time_hack = times.hack(target)
-        const use_threads = Math.max(1, Math.ceil(ns.hackAnalyzeThreads(target, (moneyAvailable * rate))))
-        if (utils.check_ram_host(script_rams.hack, hosts) <= 0) {
-          logs.error(`[${target}][hosts] ram thấp`)
-          await ns.sleep(5000)
-          continue
-        }
-        logs.info(`[${target}][hack] t=${use_threads} time:${Math.ceil(time_hack / 1000)}s`)
-        run_ok = await utils.run_scripts(script_path.hack, script_rams.hack, use_threads, target, hosts)
-        if (run_ok) await ns.sleep(time_hack)
-        logs.success(`[${target}][hack] xong`)
-      }
+      // else {
+      //   const time_hack = times.hack(target)
+      //   const use_threads = Math.max(1, Math.ceil(ns.hackAnalyzeThreads(target, (moneyAvailable * rate))))
+      //   if (utils.check_ram_host(script_rams.hack, hosts) <= 0) {
+      //     logs.error(`[${target}][hosts] ram thấp`)
+      //     await ns.sleep(5000)
+      //     continue
+      //   }
+      //   logs.info(`[${target}][hack] t=${use_threads} time:${Math.ceil(time_hack / 1000)}s`)
+      //   run_ok = await utils.run_scripts(script_path.hack, script_rams.hack, use_threads, target, hosts)
+      //   if (run_ok) await ns.sleep(time_hack)
+      //   logs.success(`[${target}][hack] xong`)
+      // }
 
       await ns.sleep(200)
     }

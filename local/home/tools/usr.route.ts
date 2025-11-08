@@ -35,7 +35,7 @@ export async function main(ns: NS) {
     ns.tprint("This script helps you find a server on the network and shows you the path to get to it.");
     ns.tprint(`Usage: run ${ns.getScriptName()} SERVER`);
     ns.tprint("Example:");
-    ns.tprint(`> run ${ns.getScriptName()} n00dles`);
+    ns.tprint(`> run ${ns.getScriptName()} --target n00dles`);
     return;
   }
 

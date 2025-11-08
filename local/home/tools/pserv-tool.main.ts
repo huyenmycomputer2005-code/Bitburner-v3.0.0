@@ -14,7 +14,7 @@ export function autocomplete(data: AutocompleteData) {
 
 class Pserv_Tool extends BaseScript {
   static argsSchema: [string, string | number | boolean | string[]][] = [
-    ['v', 1], ['r', 2], ['n', 'pserv'],
+    ['v', 1], ['r', 2], ['prefix', 'Pserv'],
     ['a', false], ['u', false], ['b', false], ['h', false]
   ];
 
@@ -23,8 +23,8 @@ class Pserv_Tool extends BaseScript {
   }
 
   async run(ns: NS = this.ns): Promise<void> {
-    var { v: value, r: amountRam, n: base_name, a: all, b: buy, u: upgrade, h: help } = this.flags as {
-      v: number, r: number, n: string, a: boolean, b: boolean, u: boolean, h: boolean
+    var { v: value, r: amountRam, prefix: base_name, a: all, b: buy, u: upgrade, h: help } = this.flags as {
+      v: number, r: number, prefix: string, a: boolean, b: boolean, u: boolean, h: boolean
     }
     if (upgrade && buy) buy = false
 
@@ -128,8 +128,10 @@ class Pserv_Tool extends BaseScript {
     if (this.debug) { return true }
     const upgrade_ok = ns.upgradePurchasedServer(old_name, ram)
     if (!upgrade_ok) return false
-    const rename_ok = ns.renamePurchasedServer(old_name, new_name)
-    if (!rename_ok) return false
+    if (old_name !== new_name) {
+      const rename_ok = ns.renamePurchasedServer(old_name, new_name)
+      if (!rename_ok) return false
+    }
     return true
   }
 
@@ -138,7 +140,7 @@ class Pserv_Tool extends BaseScript {
     const pserv_names = ns.getPurchasedServers()
 
     for (var num = 0; num < limit; num++) {
-      const name = `${base_name}-${ns.format.ram(ram)}-${num + 1}` // -${num + 1}
+      const name = `${base_name}-${num + 1}` // -${num + 1}
       if (pserv_names.includes(name)) continue
       list_name_pserv.push(name)
     }
