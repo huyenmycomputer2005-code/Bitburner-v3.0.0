@@ -1,4 +1,4 @@
-import { Logger } from 'modules/module.logger.ts'
+import { Logger } from '../modules/module.logger'
 
 interface Configs {
 
@@ -49,20 +49,23 @@ export default class Utils {
   }
 
 
-  async run_scripts(script_path: string, script_ram: number, need_Threads: number, target: string, hosts: string[]): Promise<boolean> {
+  async exec_scripts(script_path: string, script_ram: number, need_Threads: number, target: string, hosts: string[]): Promise<boolean> {
+
     if (need_Threads <= 0) return false
     if (script_ram <= 0) return false
     if (!script_path) return false
+
+    if (need_Threads > 0) this.logs.info(`[threads][${need_Threads}]`)
     while (need_Threads > 0) {
+      await this.ns.sleep(50)
       for (const h of hosts) {
-        await this.ns.sleep(50)
         if (!h) continue
         this.ns.scp(script_path, h, 'home')
         if (!this.ns.fileExists(script_path, h)) continue
 
         const fee_ram = this.ns.getServerUsedRam(h)
         const max_ram = this.ns.getServerMaxRam(h)
-        const avai_ram = max_ram - fee_ram
+        const avai_ram = h === 'home' ? (max_ram - 32) - fee_ram : max_ram - fee_ram
         const use_threads = Math.max(0, Math.floor(avai_ram / script_ram))
         if (!use_threads || use_threads <= 0) continue
 

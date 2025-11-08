@@ -197,5 +197,5 @@ function help() {
 
 export function autocomplete(data: AutocompleteData, args: any) {
   data.flags(FLAGS)
-  return [...data.servers]
+  return [...data.servers, ...data.command, ...data.scripts]
 }

@@ -16,7 +16,7 @@ export async function main(ns: NS): Promise<void> {
   while (true) {
     const server = flags.target
     let money = ns.getServerMoneyAvailable(server);
-    if (money === 0) money = 1;
+    if (money <= 0) money = 1;
 
     const maxMoney = ns.getServerMaxMoney(server);
     const minSec = ns.getServerMinSecurityLevel(server);

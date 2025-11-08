@@ -175,7 +175,7 @@ function taskValue(ns: NS, gangInfo: GangGenInfo, member: string, task: string) 
     moneyGain *= 0.75;
   }
 
-  if (ns.getServerMoneyAvailable("home") > 100e9) {
+  if (ns.getServerMoneyAvailable("home") > 1e12) {
     // nếu chúng ta nhận được tất cả các khoản tăng thêm, tiền từ các băng đảng có lẽ không còn phù hợp nữa; vì vậy hãy tập trung vào sự tôn trọng
     // đặt mức tăng tiền ít nhất là tôn trọng mức tăng trong trường hợp các nhiệm vụ kiếm tiền thấp như khủng bố
     moneyGain /= 100; // so sánh tiền bạc để tôn trọng giá trị đạt được; ưu tiên sự tôn trọng hơn

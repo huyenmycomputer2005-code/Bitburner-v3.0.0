@@ -137,6 +137,7 @@ dist
 mirror/
 build/
 src/
+nhap/
 
 .vscode/*
 !.vscode/launch.json

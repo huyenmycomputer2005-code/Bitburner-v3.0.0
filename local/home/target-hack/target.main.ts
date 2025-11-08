@@ -16,7 +16,8 @@ class Target_Script extends BaseScript {
   /**@param argsSchema flags riêng của script con */
   static argsSchema: [string, string | number | boolean | string[]][] = [
     ['target', 'all'], ['host', 'all'],
-    ['rate', 0.1], ['h', false],
+    ['rate', 0.1], ['limittime', 60000],
+    ['h', false],
   ]
 
   constructor(ns: NS) {
@@ -28,8 +29,9 @@ class Target_Script extends BaseScript {
   private utils: Target_Module
 
   async run(ns: NS = this.ns, logs = this.logs) {
-    var { target, rate, h: sp, host } = this.flags as {
-      target: string, rate: number, h: boolean, host: string
+
+    var { target, rate, h: sp, host, limittime } = this.flags as {
+      target: string, rate: number, h: boolean, host: string, limittime: number
     }
 
     if (!target || target == '') {
@@ -67,19 +69,12 @@ class Target_Script extends BaseScript {
 
       for (const st of targets) {
         // if (st == 'foodnstuff') continue
-        const server = this.utils.checkOut(st)
+        const server = this.utils.checkOut(st, limittime)
         if (!server) continue
 
         if (isOnCooldown(server.hostname)) continue
         /** Batches setup */
-        // var batches = this.utils.getBatchSave(server.hostname)
-        // if (!batches || (batches && (Date.now() - batches.createAt) > 5_000)) {
-        //   batches = await this.utils.getBatch(server, rate)
-        //   if (batches && !batches.normalization) {
-        //     this.utils.setBatchSave(batches.hostname, batches)
-        //   }
-        // }
-        var batches = await this.utils.getBatch(server, rate)
+        var batches = await this.utils.getBatch(server.hostname, rate)
         if (!batches) continue
 
         if (this.debug) {
@@ -88,24 +83,22 @@ class Target_Script extends BaseScript {
         }
 
         /** log info */
-        const logMsg: { msg: any }[] = [
-          { msg: `[BATT-Target] [${batches.hostname}]` },
-          { msg: `[BATT-Threads] H=${batches.hackThreads} WH=${batches.weakenHackThreads} G=${batches.growThreads} WG=${batches.weakenGrowThreads}` },
+        const logMsg: string[] = [
+          `[BATT-Target] [${batches.hostname}]`,
+          `[BATT-Threads] H=${batches.hackThreads} WH=${batches.weakenHackThreads} G=${batches.growThreads} WG=${batches.weakenGrowThreads}`
         ]
 
         var checkRun = false
-        if (batches) { // Chiển khai tấn công
-          batches.normalization ? logs.warn(logMsg[0].msg) : logs.info(logMsg[0].msg)
-          batches.normalization ? logs.warn(logMsg[1].msg) : logs.info(logMsg[1].msg)
-          const runOk = await this.utils.sendBatch(batches, hosts)
-          if (runOk) {
-            checkRun = true
-          }
+        // Chiển khai tấn công
+        for (const text of logMsg) {
+          batches.normalization ? logs.warn(text) : logs.info(text)
         }
+        const runOk = await this.utils.sendBatch(batches, hosts)
+        if (runOk) { checkRun = true }
 
         checkRun // Xác nhận chạy
-          ? logs.success(`[EXEC] [${batches.hostname}]`)
-          : logs.error(`[EXEC] [${batches.hostname}]`)
+          ? logs.success(`[EXEC-Done] [${batches.hostname}]`)
+          : logs.warn(`[EXEC-Fail] [${batches.hostname}]`)
 
         // Đặt thời gian chờ cho target
         if (checkRun) {
@@ -119,7 +112,7 @@ class Target_Script extends BaseScript {
         if (this.debug) break
         // if (target.toLowerCase() === 'all') await ns.sleep(100)
       }
-      await ns.sleep(500)
+      await ns.sleep(200)
     }
   }
 
