@@ -15,8 +15,14 @@ export async function main(ns: NS) {
   for (const s of servers) {
     if (includeDetails) {
       if (!s.hasRoot) continue
-      if (s.moneyMax! as number <= 0) continue
-      s.moneyMax = ns.format.number(s.moneyMax as number)
+      if (Number(s.moneyMax!) <= 0) continue
+      if (Number(s.times.weaken!) > 240000) continue
+      s.times.hack = ns.format.time(Number(s.times.hack))
+      s.times.grow = ns.format.time(Number(s.times.grow))
+      s.times.weaken = ns.format.time(Number(s.times.weaken))
+
+      s.maxRam = ns.format.ram(Number(s.maxRam))
+      s.moneyMax = ns.format.number(Number(s.moneyMax))
 
       ns.tprint(JSON.stringify(s, null, 2))
     } else ns.tprint(JSON.stringify(s.host, null, 2))
@@ -42,8 +48,13 @@ export function deepScan(ns: NS, start = "home", opts: { maxDepth: number, inclu
     host: string;
     depth: number;
     parent: string | null;
-    maxRam: string | null;
+    maxRam: number | string | null;
     moneyMax: number | string | null;
+    times: {
+      hack: number | string | null,
+      grow: number | string | null,
+      weaken: number | string | null,
+    }
     requiredHackingLevel: number | null;
     numPortsRequired: number | null;
     hasRoot: boolean | null;
@@ -61,12 +72,12 @@ export function deepScan(ns: NS, start = "home", opts: { maxDepth: number, inclu
       host: string,
       depth: number,
       parent: string | null,
-      maxRam: string | null,
-      moneyMax: number | string | null,
+      maxRam: number | null,
+      moneyMax: number | null,
       times: {
-        hack: string | null,
-        grow: string | null,
-        weaken: string | null,
+        hack: number | null,
+        grow: number | null,
+        weaken: number | null,
       },
       requiredHackingLevel: number | null,
       numPortsRequired: number | null,
@@ -86,40 +97,47 @@ export function deepScan(ns: NS, start = "home", opts: { maxDepth: number, inclu
       numPortsRequired: null,
       hasRoot: null
     };
+
     try {
-      info.maxRam = ns.format.ram(ns.getServerMaxRam(host));
+      info.maxRam = ns.getServerMaxRam(host)
     } catch (e) {
       info.maxRam = null;
     }
+
     try {
       info.moneyMax = ns.getServerMaxMoney(host)
     } catch (e) {
       info.moneyMax = null
     }
+
     try {
-      info.times.hack = ns.format.time(ns.getHackTime(host))
-      info.times.grow = ns.format.time(ns.getGrowTime(host))
-      info.times.weaken = ns.format.time(ns.getWeakenTime(host))
+      info.times.hack = ns.getHackTime(host)
+      info.times.grow = ns.getGrowTime(host)
+      info.times.weaken = ns.getWeakenTime(host)
     } catch (e) {
       info.times.hack = null
       info.times.grow = null
       info.times.weaken = null
     }
+
     try {
       info.requiredHackingLevel = ns.getServerRequiredHackingLevel(host);
     } catch (e) {
       info.requiredHackingLevel = null;
     }
+
     try {
       info.numPortsRequired = ns.getServerNumPortsRequired(host);
     } catch (e) {
       info.numPortsRequired = null;
     }
+
     try {
       info.hasRoot = ns.hasRootAccess(host);
     } catch (e) {
       info.hasRoot = null;
     }
+
     result.push(info);
 
     // Duyệt các server láng giềng
