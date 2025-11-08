@@ -9,7 +9,7 @@ export default abstract class BaseScript {
   debug: boolean
   static baseArgs: [string, string | number | boolean | string[]][] = [
     ['loglevel', 'info'],
-    ['l', false], ['d', false], ['s', false],
+    ['l', true], ['d', false], ['s', false],
   ]
 
   constructor(ns: NS, extraArgs: [string, string | number | boolean | string[]][] = []) {
@@ -52,7 +52,7 @@ export default abstract class BaseScript {
   }
 
   /** Mỗi script con phải override run() */
-  abstract run(ns: NS): Promise<void>
+  abstract run(): Promise<void>
 
   /** Hàm này script con có thể override để thêm autocomplete riêng */
   static autocompleteExtra?(data: AutocompleteData): string[]
@@ -62,6 +62,6 @@ export default abstract class BaseScript {
     const merged = [...BaseScript.baseArgs, ...extraArgs]
     data.flags(merged)
     const extras = this.autocompleteExtra ? this.autocompleteExtra(data) : []
-    return [...data.servers, ...extras]
+    return [...data.scripts, ...extras]
   }
 }
