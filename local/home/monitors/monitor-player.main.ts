@@ -2,23 +2,23 @@
 import BaseScript from '../bases/module.base-script'
 
 export async function main(ns: NS) {
-  const script = new ExampleScript(ns)
+  const script = new MonitorScript(ns)
   await script.run(ns)
 }
 
 export function autocomplete(data: AutocompleteData) {
   // gọi static autocomplete() từ BaseScript
-  return ExampleScript.autocomplete(data, ExampleScript.argsSchema)
+  return MonitorScript.autocomplete(data, MonitorScript.argsSchema)
 }
 
-class ExampleScript extends BaseScript {
+class MonitorScript extends BaseScript {
   // --- flags riêng của script con
   static argsSchema: [string, string | number | boolean | string[]][] = [
     ['target', 'n00dles'], ['repeat', 1],
   ]
 
   constructor(ns: NS) {
-    super(ns, ExampleScript.argsSchema)
+    super(ns, MonitorScript.argsSchema)
   }
 
   async run(ns: NS = this.ns, logs = this.logs) {
@@ -26,15 +26,21 @@ class ExampleScript extends BaseScript {
       target: string, repeat: number
     }
 
-    try {
+    while (true) {
       const player = ns.getPlayer()
+      try {
+        ns.clearLog()
 
-    } catch (error) {
-      logs.error(`${error}`)
-      logs.error(`Script ${ns.getScriptName()} run fail! ❎`)
-      ns.ui.openTail()
+        logs.info(`hacking: ${ns.format.number(player.money)}`)
+      }
+      catch (error) {
+        logs.error(`Script ${ns.getScriptName()} run fail! ❎`)
+        logs.error(`${error}`)
+        ns.ui.openTail()
+        break
+      }
+      await ns.sleep(200)
     }
-    logs.success(`Script ${ns.getScriptName()} run done! ✅`)
   }
 
   // --- autocomplete thêm giá trị gợi ý riêng cho target

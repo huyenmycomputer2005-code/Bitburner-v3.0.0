@@ -9,7 +9,7 @@ const script_path = {
 const script_rams = { hack: 0, grow: 0, weaken: 0 }
 const logListLevel = ['debug', 'info', 'succ', 'warn', 'error']
 const argsSchema: [string, string | number | boolean | string[]][] = [
-  ['target', ''], ['loglevel', 'info'], ['rate', 0.05], ['l', false], ['d', false]
+  ['target', ''], ['loglevel', 'info'], ['rate', 0.1], ['l', false], ['d', false]
 ]
 
 export async function main(ns: NS) {
@@ -49,6 +49,7 @@ export async function main(ns: NS) {
 
     while (true) {
       const hosts = await get_hosts_ok(ns)
+      if (hosts.length <= 0) hosts.push('home')
       if (!target || target == '') throw new Error(`fun-main: target is not ${target}`)
       if (!server) { server = utils.check_server(target) } else server = ns.getServer(target)
       if (!server) throw new Error(`fun-main: server is not ${server}`)
@@ -89,19 +90,19 @@ export async function main(ns: NS) {
 
       }
 
-      // else {
-      //   const time_hack = times.hack(target)
-      //   const use_threads = Math.max(1, Math.ceil(ns.hackAnalyzeThreads(target, (moneyAvailable * rate))))
-      //   if (utils.check_ram_host(script_rams.hack, hosts) <= 0) {
-      //     logs.error(`[${target}][hosts] ram thấp`)
-      //     await ns.sleep(5000)
-      //     continue
-      //   }
-      //   logs.info(`[${target}][hack] t=${use_threads} time:${Math.ceil(time_hack / 1000)}s`)
-      //   run_ok = await utils.run_scripts(script_path.hack, script_rams.hack, use_threads, target, hosts)
-      //   if (run_ok) await ns.sleep(time_hack)
-      //   logs.success(`[${target}][hack] xong`)
-      // }
+      else {
+        const time_hack = times.hack(target)
+        const use_threads = Math.max(1, Math.ceil(ns.hackAnalyzeThreads(target, (moneyAvailable * rate))))
+        if (utils.check_ram_host(script_rams.hack, hosts) <= 0) {
+          logs.error(`[${target}][hosts] ram thấp`)
+          await ns.sleep(5000)
+          continue
+        }
+        logs.info(`[${target}][hack] t=${use_threads} time:${Math.ceil(time_hack / 1000)}s`)
+        run_ok = await utils.run_scripts(script_path.hack, script_rams.hack, use_threads, target, hosts)
+        if (run_ok) await ns.sleep(time_hack)
+        logs.success(`[${target}][hack] xong`)
+      }
 
       await ns.sleep(200)
     }

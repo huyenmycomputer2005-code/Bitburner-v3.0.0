@@ -1,4 +1,4 @@
-function recursiveScan(ns: NS, parent: string, server: string, target: string, route: any[]) {
+function recursiveScan(ns: NS, parent: string, server: string, target: string, route: string[]) {
   const children = ns.scan(server);
   for (let child of children) {
     if (parent == child) {
@@ -22,7 +22,12 @@ export async function main(ns: NS) {
   ns.disableLog('ALL')
   ns.ui.openTail()
 
-  const args = ns.flags([["help", false], ['target', 'n00dles'], ['p', false]]) as { help: boolean, p: boolean, target: string };
+  const args = ns.flags([
+    ["help", false], ['target', 'n00dles'], ['p', false]
+  ]) as {
+    help: boolean, p: boolean, target: string
+  };
+
   let route: string[] = [];
   let server = args.target;
   let view_path_only = args.p;
@@ -39,10 +44,9 @@ export async function main(ns: NS) {
   if (!view_path_only) {
     ns.print("connect ", route.join("; connect "), "; backdoor")
   } else {
-    for (const i in route) {
-      await ns.sleep(100);
-      const extra = i > 0 ? "└ " : "";
-      ns.print(`${" ".repeat(i)}${extra}${route[i]}`);
+    for (const i of route) {
+      // ns.print(i)
+      ns.singularity.connect(i)
     }
   }
 }

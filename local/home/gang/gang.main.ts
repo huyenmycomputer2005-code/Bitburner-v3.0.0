@@ -1,15 +1,16 @@
 export async function main(ns: NS) {
   ns.disableLog("ALL");
-  ns.clearLog();
   if (!ns.gang.inGang()) {
     joinGang(ns);
   }
 
+  tasks = ns.gang.getTaskNames();
+  augmentationNames = ns.gang.getEquipmentNames();
+
   var territoryWinChance = 1;
-  // tasks = ns.gang.getTaskNames()
-  // ns.print(JSON.stringify(memberInfo))
 
   while (true) {
+    ns.clearLog();
     recruit(ns);
     equipMembers(ns);
     ascend(ns);
@@ -19,16 +20,30 @@ export async function main(ns: NS) {
   }
 }
 
+var tasks: string[] = []
+var augmentationNames: string[] = []
+const combatGangs = [
+  "Speakers for the Dead", "The Dark Army", "The Syndicate", "Tetrads", "Slum Snakes"
+];
+const hackingGangs = ["NiteSec", "The Black Hand"];
+
 function territoryWar(ns: NS) {
   const minWinChanceToStartWar = 0.8;
   let gangInfo = ns.gang.getGangInformation();
-  // ns.print("Territory: " + gangInfo.territory);
+
+  ns.print(`Respect: ${ns.format.number(gangInfo.respect)} (${ns.format.number(gangInfo.respectGainRate)})`);
+  ns.print(`Wanted Level: ${gangInfo.wantedLevel} (${ns.format.number(gangInfo.wantedLevelGainRate)})`);
+  ns.print(`Wanted Level Penalty: ${ns.format.percent(gangInfo.wantedPenalty)}`);
+  ns.print(`Money gainrate: ${ns.format.number(gangInfo.moneyGainRate)}`);
+  ns.print(`Territory: ${ns.format.percent(gangInfo.territory)}`);
+  ns.print(` `);
+
   // sometimes territory is stuck at something like 99.99999999999983%
   // since clash chance takes time to decrease anyways, should not be an issue to stop a bit before 100,000000%
   if (gangInfo.territory < 0.9999) {
     let otherGangInfos = ns.gang.getOtherGangInformation();
     let myGangPower = gangInfo.power;
-    //ns.print("My gang power: " + myGangPower);
+    ns.print(`My gang power: ${ns.format.number(myGangPower)}`);
     let lowestWinChance = 1;
     for (const otherGang of combatGangs.concat(hackingGangs)) {
       if (otherGang == gangInfo.faction) {
@@ -49,7 +64,7 @@ function territoryWar(ns: NS) {
         ns.toast("Bắt đầu chiến tranh lãnh thổ");
         ns.gang.setTerritoryWarfare(true);
       }
-      ns.print("Cơ hội chiếm lãnh thổ: " + (lowestWinChance * 100).toFixed(2) + "%");
+      ns.print(`Cơ hội chiếm lãnh thổ: ${ns.format.percent(lowestWinChance)}`);
     }
     return lowestWinChance;
   }
@@ -71,11 +86,11 @@ function ascend(ns: NS) {
     let memberAscensionMultiplier = (memberInfo.agi_asc_mult + memberInfo.def_asc_mult + memberInfo.dex_asc_mult + memberInfo.str_asc_mult) / 4;
     //ns.print("Member ascension multiplier: " + memberAscensionMultiplier);
     let memberAscensionResult = ns.gang.getAscensionResult(member);
-    if (memberAscensionResult != undefined) {
+    if (memberAscensionResult !== undefined) {
       let memberAscensionResultMultiplier = (memberAscensionResult.agi + memberAscensionResult.def + memberAscensionResult.dex + memberAscensionResult.str) / 4;
       //ns.print("Member ascension result: " + memberNewAscensionMultiplier);
       if ((memberAscensionResultMultiplier > 1.3)) {
-        ns.print("Thành viên băng đảng Ascent " + member);
+        ns.print("Thành viên Ascent: " + member);
         ns.gang.ascendMember(member);
       }
     }
@@ -86,18 +101,11 @@ function equipMembers(ns: NS) {
   let members = ns.gang.getMemberNames();
   for (let member of members) {
     let memberInfo = ns.gang.getMemberInformation(member);
-    if (memberInfo.augmentations.length < augmentationNames.length) {
+    const numUpgrade = [...memberInfo.augmentations, ...memberInfo.upgrades]
+    if (numUpgrade.length < augmentationNames.length) {
       for (let augmentation of augmentationNames) {
-        if (ns.gang.getEquipmentCost(augmentation) < (0.01 * ns.getServerMoneyAvailable("home"))) {
-          ns.print("Tăng cường cho " + member + ": " + augmentation);
-          ns.gang.purchaseEquipment(member, augmentation);
-        }
-      }
-    }
-
-    if (memberInfo.upgrades.length < upgradeName.length) {
-      for (let augmentation of upgradeName) {
-        if (ns.gang.getEquipmentCost(augmentation) < (0.01 * ns.getServerMoneyAvailable("home"))) {
+        if (numUpgrade.includes(augmentation)) continue
+        if (ns.gang.getEquipmentCost(augmentation) < (0.1 * ns.getServerMoneyAvailable("home"))) {
           ns.print("Tăng cường cho " + member + ": " + augmentation);
           ns.gang.purchaseEquipment(member, augmentation);
         }
@@ -167,7 +175,7 @@ function taskValue(ns: NS, gangInfo: GangGenInfo, member: string, task: string) 
     moneyGain *= 0.75;
   }
 
-  if (ns.getServerMoneyAvailable("home") > 10e12) {
+  if (ns.getServerMoneyAvailable("home") > 100e9) {
     // nếu chúng ta nhận được tất cả các khoản tăng thêm, tiền từ các băng đảng có lẽ không còn phù hợp nữa; vì vậy hãy tập trung vào sự tôn trọng
     // đặt mức tăng tiền ít nhất là tôn trọng mức tăng trong trường hợp các nhiệm vụ kiếm tiền thấp như khủng bố
     moneyGain /= 100; // so sánh tiền bạc để tôn trọng giá trị đạt được; ưu tiên sự tôn trọng hơn
@@ -187,7 +195,7 @@ function memberCombatStats(ns: NS, member: string) {
 function recruit(ns: NS) {
   if (ns.gang.canRecruitMember()) {
     let members = ns.gang.getMemberNames();
-    let memberName = "bittool-" + members.length;
+    let memberName = "BitTool-" + members.length;
     ns.print("Tuyển thành viên " + memberName);
     ns.gang.recruitMember(memberName);
   }
@@ -201,27 +209,3 @@ function joinGang(ns: NS) {
     }
   }
 }
-
-// ["Human Trafficking","Mug People","Deal Drugs","Strongarm Civilians", "Run a Con", "Armed Robbery","Traffick Illegal Arms", "Threaten & Blackmail", "Terrorism"]
-var tasks: string[] = [
-  "Ransomware", "Phishing", "Identity Theft", "DDoS Attacks", "Plant Virus", "Fraud & Counterfeiting",
-  "Money Laundering", "Cyberterrorism", "Ethical Hacking", "Train Hacking",
-  "Train Charisma"
-];
-
-var upgradeName = [
-  "Baseball Bat", "Katana", "Malorian-3516", "Hansen-HA7", "Arasaka-HJSH18", "Militech-M251s", "Nokota-D5", "Techtronika-SPT32",
-  "Bulletproof Vest", "Full Body Armor", "Liquid Body Armor", "Graphene Plating Armor", "Herrera Outlaw GTS", "Yaiba ASM-R250 Muramasa",
-  "Rayfield Caliburn", "Quadra Sport R-7", "NUKE Rootkit", "Soulstealer Rootkit", "Demon Rootkit", "Hmap Node", "Jack the Ripper"
-]
-
-const augmentationNames = [
-  "BitWire", "DataJack", "Bionic Arms", "Bionic Legs", "Neuralstimulator", "Nanofiber Weave", "Bionic Spine",
-  "Synfibril Muscle", "BrachiBlades", "Synthetic Heart", "Graphene Bone Lacings"
-];
-
-var combatGangs = [
-  "Speakers for the Dead", "The Dark Army", "The Syndicate", "Tetrads", "Slum Snakes"
-];
-
-const hackingGangs = ["NiteSec", "The Black Hand"];
