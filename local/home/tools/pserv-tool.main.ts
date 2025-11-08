@@ -18,12 +18,8 @@ class Pserv_Tool extends BaseScript {
     ['a', false], ['u', false], ['b', false], ['h', false]
   ];
 
-  private debug: boolean;
-
   constructor(ns: NS) {
     super(ns, Pserv_Tool.argsSchema);
-    this.ns = ns
-    this.debug = this.logs.isDebug || false;
   }
 
   async run(ns: NS = this.ns): Promise<void> {
@@ -56,25 +52,30 @@ class Pserv_Tool extends BaseScript {
     const list_name_pserv = this.getListNamePserv(base_name, ram)
     // { this.logs.debug(`list name: \n${JSON.stringify(list_name_pserv, null, 2)}`) }
 
-    if (all) {
-      if (buy) {
-        limit = 25 - pservs_name.length
-      } else {
-        const pserv_ok: string[] = []
-        for (const host of pservs_name) {
-          // this.logs.info(`ram: ${ram} | ${ns.getServerMaxRam(host)}`)
-          if (ram <= ns.getServerMaxRam(host)) continue
-          pserv_ok.push(host)
+    function check_limit() {
+      if (all) {
+        if (buy) {
+          limit = 25 - pservs_name.length
+        } else {
+          const pserv_ok: string[] = []
+          for (const host of pservs_name) {
+            // this.logs.info(`ram: ${ram} | ${ns.getServerMaxRam(host)}`)
+            if (ram <= ns.getServerMaxRam(host)) continue
+            pserv_ok.push(host)
+          }
+          pservs_name = pserv_ok
+          limit = pserv_ok.length
         }
-        pservs_name = pserv_ok
-        limit = pserv_ok.length
-      }
-    } else limit = value
+      } else limit = value
+    }
+    check_limit()
 
     this.logs.info(`Price (one/all(${limit})): ${Colors.Yellow}$${ns.format.number(price_pserv)} / ${Colors.Yellow}$${ns.format.number(price_pserv * limit)}`)
     this.logs.info(`Ram : ${ns.format.ram(ram)}`)
 
     if (buy) {
+      // while (limit > 0) {
+      // check_limit()
       if (limit <= 0) { return this.logs.warn(`Đã mua tối đa 25 host`) }
       for (var num = 0; num < limit; num++) {
         const money = ns.getPlayer().money
@@ -88,6 +89,8 @@ class Pserv_Tool extends BaseScript {
           this.logs.error(`[BUY] [${name}] Price:${Colors.Yellow}$${ns.format.number(price_pserv)}`)
         }
       }
+      // await ns.sleep(2000)
+      // }
       return
     }
 
@@ -135,7 +138,7 @@ class Pserv_Tool extends BaseScript {
     const pserv_names = ns.getPurchasedServers()
 
     for (var num = 0; num < limit; num++) {
-      const name = `${base_name}-${ns.format.ram(ram)}-${num + 1}`
+      const name = `${base_name}-${ns.format.ram(ram)}-${num + 1}` // -${num + 1}
       if (pserv_names.includes(name)) continue
       list_name_pserv.push(name)
     }
