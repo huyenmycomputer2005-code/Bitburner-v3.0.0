@@ -39,6 +39,7 @@ export default class Target_Module {
     weaken: number
   }
   private batch_cache: Map<string, Batch> = new Map()
+  private chuan_hoa: Map<string, boolean> = new Map()
 
   constructor(ns: NS, logs: Logger, configs?: Partial<Configs>) {
     this.ns = ns
@@ -61,7 +62,11 @@ export default class Target_Module {
   /** Kiểm tra chuẩn hóa và thiết lập các luồn cho đợt tấn công */
   private async setupBatThreads(target: string, rate: number, ns = this.ns): Promise<Batch> {
     // --- Thông tin server --- //
+<<<<<<< HEAD
     const server = ns.getServer(target)
+=======
+    var server = ns.getServer(target)
+>>>>>>> edit
     const player = ns.getPlayer()
     const formulasAPI = this.check_Formulas()
     var moneyAvailable = server.moneyAvailable!
@@ -72,8 +77,10 @@ export default class Target_Module {
     const valueWeaken = ns.weakenAnalyze(1)
     const times = this.timesWGH(target, formulasAPI)
     const timemax = Math.max(...Object.values(times) as number[])
+    var t = false
 
     /** Thiết lập HWGW */
+<<<<<<< HEAD
     if (formulasAPI) {
       // --- Hack threads --- //
       hack_Threads += Math.max(1, Math.floor(ns.hackAnalyzeThreads(target, (moneyMax * rate))))
@@ -97,13 +104,19 @@ export default class Target_Module {
       // --- Hack threads --- //
       hack_Threads += Math.max(1, Math.floor(ns.hackAnalyzeThreads(target, (moneyAvailable * rate))))
       if (!isFinite(hack_Threads)) hack_Threads = 1
+=======
+    // --- Hack threads --- //
+    hack_Threads += Math.max(1, Math.floor(ns.hackAnalyzeThreads(target, (moneyAvailable * rate))))
+    if (!isFinite(hack_Threads)) hack_Threads = 1
+>>>>>>> edit
 
-      // --- Grow threads --- //
-      const safeMoney = Math.max(1, moneyAvailable - (moneyAvailable * rate))
-      const growRatio = moneyMax / safeMoney
-      grow_Threads += Math.max(1, Math.ceil(ns.growthAnalyze(target, growRatio)))
-      if (!isFinite(grow_Threads)) grow_Threads = 1
+    // --- Grow threads --- //
+    const safeMoney = Math.max(1, moneyAvailable - (moneyAvailable * rate))
+    const growRatio = moneyMax / safeMoney
+    grow_Threads += Math.max(1, Math.ceil(ns.growthAnalyze(target, growRatio)))
+    if (!isFinite(grow_Threads)) grow_Threads = 1
 
+<<<<<<< HEAD
       // --- Weaken threads --- //
       if ((hack_Threads || grow_Threads) > 0) {
         // -- Weaken Hack -- //
@@ -114,6 +127,17 @@ export default class Target_Module {
         const security_Grow = grow_Threads * 0.004
         weakenG_Threads += Math.max(1, Math.ceil(security_Grow / valueWeaken))
       }
+=======
+    // --- Weaken threads --- //
+    if ((hack_Threads || grow_Threads) > 0) {
+      // -- Weaken Hack -- //
+      const security_Hack = hack_Threads * 0.002
+      weakenH_Threads += Math.max(1, Math.ceil(security_Hack / valueWeaken))
+
+      // -- Weaken Grow -- //
+      const security_Grow = grow_Threads * 0.004
+      weakenG_Threads += Math.max(1, Math.ceil(security_Grow / valueWeaken))
+>>>>>>> edit
     }
 
     return {
@@ -256,6 +280,9 @@ export default class Target_Module {
 
   /** Lấy free Ram host */
   private getFreeRamServer(host: string, ns = this.ns): number {
+    if (host === 'home') {
+      return Math.max(0, ((ns.getServerMaxRam(host) - 32) - ns.getServerUsedRam(host)))
+    }
     return Math.max(0, (ns.getServerMaxRam(host) - ns.getServerUsedRam(host)))
   }
 
@@ -293,7 +320,7 @@ export default class Target_Module {
 
 
   /** Kiểm tra target có đủ điều kiện không */
-  private check_target(target: string, ns = this.ns) {
+  private check_target(target: string, limitTiem: number = 60_000, ns = this.ns) {
     const server = ns.getServer(target)
     if (!server) {
       ns.tprint(`❌ Không tìm thấy server: ${target}`)
@@ -307,7 +334,10 @@ export default class Target_Module {
       ns.tprint(`⚠️ ${target} Không có tiền để hack`)
       return null
     }
-    if (server.minDifficulty! >= server.hackDifficulty! && ns.getWeakenTime(server.hostname) > 240_000) { return null }
+    if ((server.minDifficulty! + 5 < server.hackDifficulty! || server.moneyAvailable! < server.moneyMax! * 0.9)) {
+      return null
+    }
+    if (ns.getWeakenTime(server.hostname) > limitTiem) { return null }
     return server
   }
 
@@ -394,7 +424,11 @@ export default class Target_Module {
   async getBatch(server: string, rate: number = 0.01) { return this.setupBatThreads(server, rate) }
 
   /** Kiểm tra target */
+<<<<<<< HEAD
   checkOut(target: string) { return this.check_target(target) }
+=======
+  checkOut(target: string, limitTime: number = 60_000) { return this.check_target(target, limitTime) }
+>>>>>>> edit
 
   /** Chiển khai script con */
   copyScripts(hosts: string[]) { return this.copy_script(hosts) }

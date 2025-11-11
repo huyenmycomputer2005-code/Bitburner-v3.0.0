@@ -16,7 +16,8 @@ class Target_Script extends BaseScript {
   /**@param argsSchema flags riêng của script con */
   static argsSchema: [string, string | number | boolean | string[]][] = [
     ['target', 'all'], ['host', 'all'],
-    ['rate', 0.1], ['h', false],
+    ['rate', 0.1], ['limittime', 60000],
+    ['h', false],
   ]
 
   constructor(ns: NS) {
@@ -28,8 +29,9 @@ class Target_Script extends BaseScript {
   private utils: Target_Module
 
   async run(ns: NS = this.ns, logs = this.logs) {
-    var { target, rate, h: sp, host } = this.flags as {
-      target: string, rate: number, h: boolean, host: string
+
+    var { target, rate, h: sp, host, limittime } = this.flags as {
+      target: string, rate: number, h: boolean, host: string, limittime: number
     }
 
     if (!target || target == '') {
@@ -67,7 +69,7 @@ class Target_Script extends BaseScript {
 
       for (const st of targets) {
         // if (st == 'foodnstuff') continue
-        const server = this.utils.checkOut(st)
+        const server = this.utils.checkOut(st, limittime)
         if (!server) continue
 
         if (isOnCooldown(server.hostname)) continue
@@ -81,11 +83,24 @@ class Target_Script extends BaseScript {
         }
 
         /** log info */
+<<<<<<< HEAD
         const logMsg: string = `[BATT-Target] [${batches.hostname}] \n[BATT-Threads] H=${batches.hackThreads} WH=${batches.weakenHackThreads} G=${batches.growThreads} WG=${batches.weakenGrowThreads}`
 
         var checkRun = false
         // Chiển khai tấn công
         batches.normalization ? logs.warn(logMsg) : logs.info(logMsg)
+=======
+        const logMsg: string[] = [
+          `[BATT-Target] [${batches.hostname}]`,
+          `[BATT-Threads] H=${batches.hackThreads} WH=${batches.weakenHackThreads} G=${batches.growThreads} WG=${batches.weakenGrowThreads}`
+        ]
+
+        var checkRun = false
+        // Chiển khai tấn công
+        for (const text of logMsg) {
+          batches.normalization ? logs.warn(text) : logs.info(text)
+        }
+>>>>>>> edit
         const runOk = await this.utils.sendBatch(batches, hosts)
         if (runOk) { checkRun = true }
 
@@ -105,7 +120,7 @@ class Target_Script extends BaseScript {
         if (this.debug) break
         // if (target.toLowerCase() === 'all') await ns.sleep(100)
       }
-      await ns.sleep(500)
+      await ns.sleep(200)
     }
   }
 

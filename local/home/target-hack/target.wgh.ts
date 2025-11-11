@@ -1,23 +1,28 @@
-import { Logger, LogLevel } from '../modules/module.logger.ts'
-import { get_hosts_ok } from '../modules/module.deep-scan.ts'
-import Utils from '../modules/module.utils.ts'
+import { Logger, LogLevel } from '../modules/module.logger'
+import { get_hosts_ok } from '../modules/module.deep-scan'
+import Utils from '../modules/module.utils'
 
 var logs: Logger, debug: boolean, utils: Utils
 const script_path = {
   hack: 'bins/bin.hack.ts', grow: 'bins/bin.grow.ts', weaken: 'bins/bin.weaken.ts'
 }
+
 const script_rams = { hack: 0, grow: 0, weaken: 0 }
 const logListLevel = ['debug', 'info', 'succ', 'warn', 'error']
 const argsSchema: [string, string | number | boolean | string[]][] = [
-  ['target', ''], ['loglevel', 'info'], ['rate', 0.1], ['l', false], ['d', false]
+  ['target', ''], ['loglevel', 'info'],
+  ['rate', 0.1],
+  ['l', false], ['d', false], ['nor', false]
 ]
 
 export async function main(ns: NS) {
   ns.disableLog('ALL')
 
-  const flags = ns.flags(argsSchema) as { target: string, loglevel: string, rate: number, d: boolean, l: boolean }
+  const flags = ns.flags(argsSchema) as {
+    target: string, loglevel: string, rate: number, d: boolean, l: boolean, nor: boolean
+  }
 
-  const [d, logEnabled, target, rate] = [flags.d, flags.l, flags.target, flags.rate]
+  const [d, logEnabled, target, rate, chuan_hoa] = [flags.d, flags.l, flags.target, flags.rate, flags.nor]
 
   var [loglevel] = [flags.loglevel]
 
@@ -68,14 +73,13 @@ export async function main(ns: NS) {
           await ns.sleep(5000)
           continue
         }
+
         logs.info(`[${target}][weaken] t=${use_threads} time:${Math.ceil(time_weaken / 1000)}s`)
-        run_ok = await utils.run_scripts(script_path.weaken, script_rams.weaken, use_threads, target, hosts)
+        run_ok = await utils.exec_scripts(script_path.weaken, script_rams.weaken, use_threads, target, hosts)
         if (run_ok) await ns.sleep(time_weaken)
         logs.success(`[${target}][weaken] xong`)
 
-      }
-
-      if (moneyAvailable < moneyMax * 0.9) {
+      } else if (moneyAvailable < moneyMax * 0.9) {
         const time_grow = times.grow(target)
         const use_threads = Math.max(1, Math.ceil(ns.growthAnalyze(target, (moneyMax / moneyAvailable))))
         if (utils.check_ram_host(script_rams.grow, hosts) <= 0) {
@@ -83,11 +87,13 @@ export async function main(ns: NS) {
           await ns.sleep(5000)
           continue
         }
+
         logs.info(`[${target}][grow] t=${use_threads} time:${Math.ceil(time_grow / 1000)}s`)
-        run_ok = await utils.run_scripts(script_path.grow, script_rams.grow, use_threads, target, hosts)
+        run_ok = await utils.exec_scripts(script_path.grow, script_rams.grow, use_threads, target, hosts)
         if (run_ok) await ns.sleep(time_grow)
         logs.success(`[${target}][grow] xong`)
 
+<<<<<<< HEAD
       }
 
       // else {
@@ -105,12 +111,29 @@ export async function main(ns: NS) {
       // }
 
       await ns.sleep(200)
+=======
+      } else {
+        if (chuan_hoa) break
+        const time_hack = times.hack(target)
+        const use_threads = Math.max(1, Math.ceil(ns.hackAnalyzeThreads(target, (moneyAvailable * rate))))
+        if (utils.check_ram_host(script_rams.hack, hosts) <= 0) {
+          logs.error(`[${target}][hosts] ram thấp`)
+          await ns.sleep(5000)
+          continue
+        }
+
+        logs.info(`[${target}][hack] t=${use_threads} time:${Math.ceil(time_hack / 1000)}s`)
+        run_ok = await utils.exec_scripts(script_path.hack, script_rams.hack, use_threads, target, hosts)
+        if (run_ok) await ns.sleep(time_hack)
+        logs.success(`[${target}][hack] xong`)
+      }
+      await ns.sleep(500)
+>>>>>>> edit
     }
   } catch (error) {
     logs.error(`${error}`)
   }
 }
-
 
 export function autocomplete(data: AutocompleteData, args: any) {
   data.flags(argsSchema)

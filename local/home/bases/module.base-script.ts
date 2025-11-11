@@ -1,5 +1,5 @@
 // module.base-script.ts
-import { Logger, LogLevel } from '../modules/module.logger.ts'
+import { Logger, LogLevel } from '../modules/module.logger'
 
 export default abstract class BaseScript {
   ns: NS
@@ -9,7 +9,11 @@ export default abstract class BaseScript {
   debug: boolean
   static baseArgs: [string, string | number | boolean | string[]][] = [
     ['loglevel', 'info'],
+<<<<<<< HEAD
     ['l', true], ['d', false], ['s', false],
+=======
+    ['l', false], ['d', false], ['time', false], ['terminal', false]
+>>>>>>> edit
   ]
 
   constructor(ns: NS, extraArgs: [string, string | number | boolean | string[]][] = []) {
@@ -21,8 +25,8 @@ export default abstract class BaseScript {
     const argsSchema = [...BaseScript.baseArgs, ...extraArgs]
     this.flags = ns.flags(argsSchema)
 
-    const { loglevel, l: logEnabled, d: debug, s: showtime } = this.flags as {
-      loglevel: string, l: boolean, d: boolean, s: boolean
+    const { loglevel, l: logEnabled, d: debug, time: showtime, terminal } = this.flags as {
+      loglevel: string, l: boolean, d: boolean, time: boolean, terminal: boolean
     }
 
     const logMap: Record<string, LogLevel> = {
@@ -37,13 +41,13 @@ export default abstract class BaseScript {
     this.logs = new Logger(ns, {
       enabled: logEnabled,
       showTimestamp: showtime,
-      useTerminal: false,
+      useTerminal: terminal,
       debug: debug
     })
     !debug ? this.logs.setLevel(logMap[loglevel] ?? LogLevel.INFO) : this.logs.setLevel(logMap['debug'] ?? LogLevel.DEBUG)
     this.debug = debug
 
-    if (logEnabled) {
+    if (logEnabled && !terminal) {
       ns.clearLog()
       ns.ui.openTail()
     }

@@ -14,7 +14,11 @@ class backdoor_script extends BaseScript {
     ['target', ''], ['r', false]
   ];
 
+<<<<<<< HEAD
   private backdoor_list: string[] = ['CSEC', 'avmnite-02h', 'I.I.I.I', 'run4theh111z']
+=======
+  private backdoor_list: string[] = ['CSEC', 'avmnite-02h', 'I.I.I.I', 'run4theh111z', 'w0r1d_d43m0n']
+>>>>>>> edit
 
   constructor(ns: NS) {
     super(ns, backdoor_script.argsSchema);
@@ -24,6 +28,7 @@ class backdoor_script extends BaseScript {
     const { target, r: run } = this.flags as {
       target: string, r: boolean
     }
+<<<<<<< HEAD
 
     if (!target) return
     if (target.toLowerCase() === 'all' && run) {
@@ -48,6 +53,40 @@ class backdoor_script extends BaseScript {
       const route: string[] = [];
       this.recursiveScan('', 'home', target, route);
       this.logs.info(`connect ${route.join('; connect ')}; backdoor`);
+=======
+    try {
+      if (!target) return
+      if (target.toLowerCase() === 'all' && run) {
+        for (const target of this.backdoor_list) {
+          const server = ns.getServer(target);
+          const player = ns.getPlayer();
+          if (server.backdoorInstalled! || server.requiredHackingSkill! > player.skills.hacking) continue
+          const route: string[] = [];
+          this.recursiveScan('', 'home', target, route);
+          if (!server.backdoorInstalled! && server.requiredHackingSkill! <= player.skills.hacking) {
+            if (ns.singularity) {
+              for (const host of route) {
+                ns.singularity.connect(host);
+              }
+              await ns.singularity.installBackdoor()
+
+              ns.singularity.connect('home');
+              this.logs.success(`[Backdoor] ${target}`)
+            } else {
+              this.logs.info(`connect ${route.join('; connect ')}; backdoor`);
+            }
+          }
+        }
+      } else {
+        const route: string[] = [];
+        this.recursiveScan('', 'home', target, route);
+        this.logs.info(`connect ${route.join('; connect ')}; backdoor`);
+      }
+    } catch {
+      // pass
+    } finally {
+      this.logs.info(`Done Run`);
+>>>>>>> edit
     }
   }
 

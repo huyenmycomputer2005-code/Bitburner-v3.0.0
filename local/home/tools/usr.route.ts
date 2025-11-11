@@ -23,14 +23,14 @@ export async function main(ns: NS) {
   ns.ui.openTail()
 
   const args = ns.flags([
-    ["help", false], ['target', 'n00dles'], ['p', false]
+    ["help", false], ['target', 'n00dles']
   ]) as {
-    help: boolean, p: boolean, target: string
+    help: boolean, target: string
   };
 
   let route: string[] = [];
   let server = args.target;
-  let view_path_only = args.p;
+
   if (!server || args.help) {
     ns.tprint("This script helps you find a server on the network and shows you the path to get to it.");
     ns.tprint(`Usage: run ${ns.getScriptName()} SERVER`);
@@ -40,15 +40,8 @@ export async function main(ns: NS) {
   }
 
   recursiveScan(ns, '', 'home', server, route);
-  ns.print(route)
-  if (!view_path_only) {
-    ns.print("connect ", route.join("; connect "), "; backdoor")
-  } else {
-    for (const i of route) {
-      // ns.print(i)
-      ns.singularity.connect(i)
-    }
-  }
+  // ns.print(route)
+  ns.print("connect ", route.join("; connect "), "; backdoor")
 }
 
 export function autocomplete(data: AutocompleteData, args: any) {
